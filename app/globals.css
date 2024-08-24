@@ -1,8 +1,10 @@
+@import "flowbite/dist/flowbite.css";
+/* Tailwind 기본 설정 */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/* :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
@@ -29,5 +31,84 @@ body {
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+} */
+
+/* 레이아웃 및 전역 스타일 */
+@layer base {
+  html,
+  body {
+    @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-sans;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+@layer components {
+  .navbar {
+    @apply fixed top-0 z-50 w-full bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700;
+  }
+
+  .navbar a {
+    @apply px-4 py-2 text-gray-900 dark:text-white hover:text-blue-500;
+  }
+
+  .navbar a:hover {
+    @apply underline;
+  }
+
+  /* 버튼 스타일 */
+  button {
+    @apply text-sm text-gray-500 dark:text-gray-400 rounded-lg p-2;
+  }
+
+  button:hover {
+    @apply bg-gray-100 dark:bg-gray-700;
+  }
+
+  button:focus {
+    @apply outline-none ring-2 ring-gray-200 dark:ring-gray-600;
+  }
+
+  /* Sidebar 스타일 */
+  #logo-sidebar {
+    @apply fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform -translate-x-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 sm:translate-x-0;
+  }
+
+  #logo-sidebar ul {
+    @apply space-y-2 font-medium;
+  }
+
+  #logo-sidebar a {
+    @apply flex items-center p-2 text-gray-900 dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700;
+  }
+
+  #logo-sidebar a svg {
+    @apply w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white;
+  }
+
+  /* 메인 컨텐츠 스타일 */
+  .main-content {
+    @apply p-4 sm:ml-64 mt-14;
+  }
+
+  .main-content-grid {
+    @apply grid grid-cols-3 gap-4 mb-4;
+  }
+
+  .main-content-grid-item {
+    @apply flex items-center justify-center h-24 bg-gray-50 dark:bg-gray-800 rounded;
+  }
+
+  .main-content-large-box {
+    @apply flex items-center justify-center h-48 bg-gray-50 dark:bg-gray-800 rounded mb-4;
+  }
+
+  .main-content-half-grid {
+    @apply grid grid-cols-2 gap-4 mb-4;
+  }
+
+  .main-content-half-grid-item {
+    @apply flex items-center justify-center h-28 bg-gray-50 dark:bg-gray-800 rounded;
   }
 }
