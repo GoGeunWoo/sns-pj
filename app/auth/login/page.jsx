@@ -2,14 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/firebaseConfig";
+import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { auth, googleProvider, appleProvider } from "@/firebaseConfig";
 import useStore from "@/app/store";
 import Link from "next/link";
 
 const Login = () => {
   const router = useRouter();
-  const { email, password, setEmail, setPassword } = useStore();
+  const { email, password, setEmail, setPassword, setUser, resetUserInfo } =
+    useStore();
   const [error, setError] = useState(null);
 
   const handleLogin = async (e) => {
@@ -21,6 +22,30 @@ const Login = () => {
       router.push("/main");
     } catch (err) {
       setError("로그인 실패: " + err.message);
+    }
+  };
+
+  //구글 로그인
+  const handleGoogleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      setUser(result.user);
+      resetUserInfo();
+      router.push("/main");
+    } catch (error) {
+      setError("Google 로그인 실패: " + error.message);
+    }
+  };
+
+  //애플 로그인
+  const handleAppleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, appleProvider);
+      setUser(result.user);
+      resetUserInfo();
+      router.push("/main");
+    } catch (error) {
+      setError("Apple 로그인 실패: " + error.message);
     }
   };
 
@@ -56,9 +81,23 @@ const Login = () => {
           >
             로그인
           </button>
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="w-full bg-red-500 text-white p-2 rounded mt-2"
+          >
+            Google로 로그인
+          </button>
+          <button
+            type="button"
+            onClick={handleAppleLogin}
+            className="w-full bg-black text-white p-2 rounded mt-2"
+          >
+            Apple로 로그인
+          </button>
           <div className="flex justify-between w-48 mt-5 text-xs text-gray-200">
             <p>아이디/비밀번호 찾기</p>
-            <Link href="/signup">회원가입</Link>
+            <Link href="/auth/signup">회원가입</Link>
           </div>
         </form>
       </div>

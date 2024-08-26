@@ -4,44 +4,66 @@ import { Inter } from "next/font/google";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Dropdown } from "flowbite";
-import { getAuth, onAuthStateChanged } from "firebase/auth"; // Firebase auth import
-import { app } from "@/firebaseConfig"; // Firebase app import
+import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+import { app, db } from "@/firebaseConfig"; // Firestore를 사용하기 위해 db 추가
+import { doc, getDoc } from "firebase/firestore"; // Firestore 메소드 추가
+import { useRouter } from "next/navigation";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({ children }) {
   const [darkMode, setDarkMode] = useState(false);
   const [user, setUser] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
-    // Firebase auth 초기화
     const auth = getAuth(app);
 
-    // 사용자 인증 상태 감시
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        const userDocRef = doc(db, "users", currentUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+          setUser({
+            uid: currentUser.uid,
+            email: currentUser.email,
+            ...userDocSnap.data(), // Firestore에 저장된 추가 데이터를 상태에 추가
+          });
+        } else {
+          console.log("사용자 데이터가 없습니다.");
+        }
+      } else {
+        setUser(null);
+      }
     });
 
-    // 다크 모드 설정
     if (darkMode) {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
 
-    // Flowbite 드롭다운 초기화
     const $targetEl = document.getElementById("dropdown-user");
     const $triggerEl = document.getElementById("dropdown-user-button");
     new Dropdown($targetEl, $triggerEl);
 
-    // 컴포넌트 언마운트 시 구독 해제
     return () => unsubscribe();
   }, [darkMode]);
+
+  const handleLogout = async () => {
+    const auth = getAuth();
+    try {
+      await signOut(auth);
+      router.push("/");
+    } catch (error) {
+      console.error("로그아웃 중 오류 발생:", error);
+    }
+  };
 
   return (
     <html lang="en" className={`${inter.className} ${darkMode ? "dark" : ""}`}>
       <body className="bg-white dark:bg-gray-900">
-        {/* 네브바 요소 */}
         <nav className="fixed top-0 z-50 w-full bg-white border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700">
           <div className="px-3 py-3 lg:px-5 lg:pl-3">
             <div className="flex items-center justify-between">
@@ -69,12 +91,6 @@ export default function RootLayout({ children }) {
                   </svg>
                 </button>
                 <Link href="/main" className="flex ms-2 md:me-24">
-                  {/* <img로고 이미지 들어갈곳
-                    src="https://flowbite.com/docs/images/logo.svg"
-                    className="h-8 me-3"
-                    alt="FlowBite Logo"
-                  /> */}
-
                   <span className="self-center text-xl font-semibold sm:text-2xl whitespace-nowrap dark:text-white">
                     Together Workout
                   </span>
@@ -85,14 +101,17 @@ export default function RootLayout({ children }) {
                   <div>
                     <button
                       type="button"
-                      className="flex text-sm  rounded-full focus:ring-2 focus:ring-gray-800 dark:focus:ring-gray-300"
+                      className="flex text-sm rounded-full focus:ring-2 focus:ring-gray-800 dark:focus:ring-gray-300"
                       id="dropdown-user-button"
                       data-dropdown-toggle="dropdown-user"
                     >
                       <span className="sr-only">Open user menu</span>
                       <img
                         className="w-8 h-8 rounded-full"
-                        src="https://search.pstatic.net/sunny/?src=https%3A%2F%2Fwww.npmjs.com%2Fnpm-avatar%2FeyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdmF0YXJVUkwiOiJodHRwczovL3MuZ3JhdmF0YXIuY29tL2F2YXRhci9hZmY3ZDdlNzMyMGVjMmEyZmEwMTIxMmMyZTgwNjM5Zj9zaXplPTQ5NiZkZWZhdWx0PXJldHJvIn0.xbB-gjpfVIjMazD8tHFoIZ4f-14yDU4rhBXNYJov6hc&type=a340"
+                        src={
+                          user?.profileImage ||
+                          "https://search.pstatic.net/sunny/?src=https%3A%2F%2Fwww.npmjs.com%2Fnpm-avatar%2FeyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdmF0YXJVUkwiOiJodHRwczovL3MuZ3JhdmF0YXIuY29tL2F2YXRhci9hZmY3ZDdlNzMyMGVjMmEyZmEwMTIxMmMyZTgwNjM5Zj9zaXplPTQ5NiZkZWZhdWx0PXJldHJvIn0.xbB-gjpfVIjMazD8tHFoIZ4f-14yDU4rhBXNYJov6hc&type=a340"
+                        }
                         alt="user photo"
                       />
                     </button>
@@ -101,7 +120,6 @@ export default function RootLayout({ children }) {
                     className="z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded shadow dark:bg-gray-700 dark:divide-gray-600"
                     id="dropdown-user"
                   >
-                    {/* ... (드롭다운 메뉴 내용) */}
                     <div className="px-4 py-3" role="none">
                       <p
                         className="text-sm text-gray-900 dark:text-white"
@@ -146,13 +164,11 @@ export default function RootLayout({ children }) {
                       </li>
                       <li>
                         <button
-                          onClick={() => {
-                            /* 로그아웃 로직 */
-                          }}
+                          onClick={handleLogout}
                           className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white"
                           role="menuitem"
                         >
-                          Sign out
+                          Log out
                         </button>
                       </li>
                     </ul>
@@ -163,7 +179,6 @@ export default function RootLayout({ children }) {
           </div>
         </nav>
 
-        {/* {*사이드바 요소*} */}
         <aside
           id="logo-sidebar"
           className="fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform -translate-x-full bg-white border-r border-gray-200 sm:translate-x-0 dark:bg-gray-800 dark:border-gray-700"
@@ -214,9 +229,7 @@ export default function RootLayout({ children }) {
             </ul>
             <div className="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-gray-700">
               <button
-                onClick={() => {
-                  /* 로그아웃 로직 */
-                }}
+                onClick={handleLogout}
                 className="flex items-center p-2 text-gray-900 transition duration-75 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white group"
               >
                 Logout

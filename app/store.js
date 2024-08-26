@@ -15,6 +15,16 @@ const useStore = create((set) => ({
   setNickname: (nickname) => set({ nickname }),
   setProfileImage: (profileImage) => set({ profileImage }),
   setGreeting: (greeting) => set({ greeting }),
+  resetUserInfo: () =>
+    set({
+      email: "",
+      password: "",
+      confirmPassword: "",
+      name: "",
+      nickname: "",
+      profileImage: "",
+      greeting: "",
+    }),
 }));
 
 export default useStore;

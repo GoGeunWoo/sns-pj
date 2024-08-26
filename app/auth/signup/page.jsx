@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth, db } from "@/firebaseConfig";
+import { auth, db, storage } from "@/firebaseConfig";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import useStore from "@/app/store"; // zustand를 통한 상태 관리
 
 const Signup = () => {
@@ -22,9 +23,11 @@ const Signup = () => {
     setNickname,
   } = useStore();
   const [error, setError] = useState(null);
+  const [profileImage, setProfileImage] = useState(null);
+  const [greeting, setGreeting] = useState("");
 
-  const defaultProfileImage =
-    "https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAyMDA2MTBfMTY1%2FMDAxNTkxNzQ2ODcyOTI2.Yw5WjjU3IuItPtqbegrIBJr3TSDMd_OPhQ2Nw-0-0ksg.8WgVjtB0fy0RCv0XhhUOOWt90Kz_394Zzb6xPjG6I8gg.PNG.lamute%2Fuser.png&type=sc960_832"; // 기본 프로필 이미지 경로
+  const defaultProfileImage = "https://example.com/default-profile-image.png";
+  const defaultGreeting = "안녕하세요! 인사말을 설정해주세요.";
 
   const validatePassword = (password) => {
     const passwordRegex =
@@ -62,20 +65,30 @@ const Signup = () => {
       );
       const user = userCredential.user;
 
-      // Firestore에 기본 프로필 이미지와 기본 인사말로 사용자 정보 저장
+      let profileImageUrl = defaultProfileImage;
+      if (profileImage) {
+        const imageRef = ref(storage, `profileImages/${user.uid}`);
+        await uploadBytes(imageRef, profileImage);
+        profileImageUrl = await getDownloadURL(imageRef);
+      }
+
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         email: user.email,
         name,
         nickname,
-        profileImage: defaultProfileImage, // 기본 프로필 이미지 설정
-        greeting: "안녕하세요! 인사말을 설정해주세요.", // 기본 인사말 설정
+        profileImage: profileImageUrl,
+        greeting: greeting || defaultGreeting,
         createdAt: serverTimestamp(),
       });
 
-      router.push(`/users/${auth.currentUser.uid}`); // 회원가입 후 프로필 설정 페이지로 이동
+      router.push("/main");
     } catch (err) {
-      setError("회원가입 실패: " + err.message);
+      if (err.code === "auth/email-already-in-use") {
+        setError("이미 사용 중인 이메일입니다.");
+      } else {
+        setError("회원가입 실패: " + err.message);
+      }
     }
   };
 
@@ -92,7 +105,8 @@ const Signup = () => {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded text-black"
+              className="w-full p-2 border border-gray-300 rounded text-black placeholder-gray-500"
+              placeholder="이름을 입력하세요"
               required
             />
           </div>
@@ -103,7 +117,8 @@ const Signup = () => {
               type="text"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded text-black"
+              className="w-full p-2 border border-gray-300 rounded text-black placeholder-gray-500"
+              placeholder="닉네임을 입력하세요"
               required
             />
           </div>
@@ -114,7 +129,8 @@ const Signup = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded text-black"
+              className="w-full p-2 border border-gray-300 rounded text-black placeholder-gray-500"
+              placeholder="이메일을 입력하세요"
               required
             />
           </div>
@@ -125,12 +141,13 @@ const Signup = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded text-black"
+              className="w-full p-2 border border-gray-300 rounded text-black placeholder-gray-500"
+              placeholder="비밀번호를 입력하세요"
               required
             />
           </div>
           {/* 비밀번호 확인 필드 */}
-          <div className="mb-6">
+          <div className="mb-4">
             <label className="block text-sm font-bold mb-2">
               비밀번호 확인
             </label>
@@ -138,8 +155,33 @@ const Signup = () => {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded text-black"
+              className="w-full p-2 border border-gray-300 rounded text-black placeholder-gray-500"
+              placeholder="비밀번호를 다시 입력하세요"
               required
+            />
+          </div>
+          {/* 프로필 사진 (선택사항) */}
+          <div className="mb-4">
+            <label className="block text-sm font-bold mb-2">
+              프로필 사진 (선택사항)
+            </label>
+            <input
+              type="file"
+              onChange={(e) => setProfileImage(e.target.files[0])}
+              className="w-full p-2 border border-gray-300 rounded"
+              accept="image/*"
+            />
+          </div>
+          {/* 인사말 (선택사항) */}
+          <div className="mb-6">
+            <label className="block text-sm font-bold mb-2">
+              인사말 (선택사항)
+            </label>
+            <textarea
+              value={greeting}
+              onChange={(e) => setGreeting(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded text-black placeholder-gray-500"
+              placeholder="인사말을 입력하세요"
             />
           </div>
           <button
