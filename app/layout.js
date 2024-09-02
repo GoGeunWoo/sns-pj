@@ -1,7 +1,6 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Link from "next/link";
-import LogoutButton from "./logout";
+import { AuthProvider } from "@/app/components/AuthContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -13,7 +12,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }
