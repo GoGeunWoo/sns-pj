@@ -7,10 +7,11 @@ export default function LandingPage() {
   return (
     <div className="relative h-screen">
       <Image
-        src="/background-image.jpg"
+        src="/images/background.png"
         layout="fill"
         objectFit="cover"
         alt="Background"
+        priority
       />
       <div className="absolute inset-0 bg-black bg-opacity-60">
         <div className="flex flex-col items-center justify-center h-full text-white">
@@ -19,7 +20,7 @@ export default function LandingPage() {
           <div className="space-x-4">
             <Link
               href="/auth/login"
-              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
             >
               로그인
             </Link>

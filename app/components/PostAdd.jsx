@@ -77,6 +77,7 @@ const PostAdd = ({ onClose, userId, onPostAdd }) => {
         text,
         images: uploadedImages,
         createdAt: new Date(),
+        likes: [],
       };
 
       const docRef = await addDoc(collection(db, "posts"), newPost);

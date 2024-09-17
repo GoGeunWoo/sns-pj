@@ -15,12 +15,14 @@ import { db } from "@/firebaseConfig";
 import { useParams } from "next/navigation";
 import PostAdd from "@/app/components/PostAdd";
 import PostDetail from "@/app/components/PostDetail"; // 추가된 임포트
+import ProfileEditModal from "@/app/components/ProfileEditModal"; // 프로필 편집 모달 컴포넌트
 
 const UserProfile = () => {
   const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
-  const [selectedPost, setSelectedPost] = useState(null); // 선택된 게시글 상태
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false); // 프로필 편집 모달 상태 추가
   const router = useRouter();
   const { userId } = useParams();
 
@@ -50,8 +52,6 @@ const UserProfile = () => {
           id: doc.id,
           ...doc.data(),
         }));
-
-        console.log("Fetched posts:", userPosts);
 
         setPosts(userPosts);
       } catch (error) {
@@ -94,12 +94,15 @@ const UserProfile = () => {
               <p className="text-sm font-bold">인사말: {user.greeting}</p>
             </div>
           </div>
-          <button className="mt-4 md:mt-0 text-white px-4 py-2 rounded">
+          <button
+            onClick={() => setIsProfileModalOpen(true)} // 프로필 편집 버튼 클릭 시 모달 열기
+            className="mt-4 md:mt-0 text-black px-4 py-2 rounded bg-gray-300"
+          >
             프로필 편집
           </button>
           <button
             onClick={() => setIsPostModalOpen(true)}
-            className="mt-4 md:mt-0 text-white px-4 py-2 rounded bg-blue-500"
+            className="mt-4 md:mt-0 text-black px-4 py-2 rounded bg-blue-600"
           >
             게시글 작성하기
           </button>
@@ -159,6 +162,13 @@ const UserProfile = () => {
 
       {selectedPost && (
         <PostDetail post={selectedPost} onClose={handleModalClose} />
+      )}
+
+      {isProfileModalOpen && (
+        <ProfileEditModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+        /> // 모달 렌더링
       )}
     </div>
   );

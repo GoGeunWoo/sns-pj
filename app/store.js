@@ -8,6 +8,8 @@ const useStore = create((set) => ({
   nickname: "",
   profileImage: "",
   greeting: "",
+  user: null, // 초기 user 상태
+  setUser: (newUser) => set({ user: newUser }), // user 상태 업데이트 함수
   setEmail: (email) => set({ email }),
   setPassword: (password) => set({ password }),
   setConfirmPassword: (confirmPassword) => set({ confirmPassword }),

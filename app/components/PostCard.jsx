@@ -1,29 +1,32 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   collection,
   query,
   orderBy,
   getDocs,
-  doc,
+  addDoc,
   updateDoc,
   deleteDoc,
+  doc,
+  arrayUnion,
+  arrayRemove,
+  limit,
+  startAfter,
+  getDoc,
 } from "firebase/firestore";
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-  deleteObject,
-} from "firebase/storage";
-import { db, storage } from "@/firebaseConfig";
+import { db } from "@/firebaseConfig";
 import { useAuth } from "@/app/components/AuthContext";
 
-// SVG icons
-const HeartIcon = () => (
+// 좋아요 아이콘 컴포넌트
+const HeartIcon = ({ liked, onClick }) => (
   <svg
-    className="w-6 h-6 text-gray-700 cursor-pointer"
-    fill="none"
+    onClick={onClick}
+    className={`w-6 h-6 cursor-pointer ${
+      liked ? "text-red-500" : "text-gray-700"
+    }`}
+    fill={liked ? "red" : "none"}
     stroke="currentColor"
     viewBox="0 0 24 24"
     xmlns="http://www.w3.org/2000/svg"
@@ -37,6 +40,7 @@ const HeartIcon = () => (
   </svg>
 );
 
+// 댓글 아이콘 컴포넌트
 const CommentIcon = ({ onClick }) => (
   <svg
     className="w-6 h-6 text-gray-700 cursor-pointer"
@@ -55,23 +59,7 @@ const CommentIcon = ({ onClick }) => (
   </svg>
 );
 
-const SendIcon = () => (
-  <svg
-    className="w-6 h-6 text-gray-700 cursor-pointer"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-    />
-  </svg>
-);
-
+// 게시글을 가져오는 함수
 const fetchPosts = async () => {
   const postsRef = collection(db, "posts");
   const q = query(postsRef, orderBy("createdAt", "desc"));
@@ -83,25 +71,175 @@ const fetchPosts = async () => {
   }));
 };
 
+// 게시글 카드 컴포넌트
 const PostCard = ({ post, onPostUpdate, onPostDelete }) => {
   const [showComments, setShowComments] = useState(false);
   const [comment, setComment] = useState("");
+  const [comments, setComments] = useState([]);
+  const [isEditingComment, setIsEditingComment] = useState(null); // 수정 중인 댓글 ID
+  const [editedComment, setEditedComment] = useState(""); // 수정된 댓글 내용
+  const [isEditingMenuOpen, setIsEditingMenuOpen] = useState(null); // 수정 메뉴 토글
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [hasMoreComments, setHasMoreComments] = useState(true);
+  const [lastVisible, setLastVisible] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showModal, setShowModal] = useState(false); // showModal 상태 정의
   const [editedText, setEditedText] = useState(post.text);
   const [editedImages, setEditedImages] = useState(post.images || []);
-  const [showModal, setShowModal] = useState(false);
   const { user } = useAuth();
-
-  const toggleComments = () => setShowComments(!showComments);
-  const toggleExpandText = () => setIsExpanded(!isExpanded);
-
-  const handleCommentSubmit = (e) => {
-    e.preventDefault();
-    setComment("");
-  };
+  const queryClient = useQueryClient();
 
   const isAuthor = user && user.uid === post.userId;
+  const liked = Array.isArray(post.likes) && post.likes.includes(user?.uid);
 
+  // 댓글 조회 및 무한 스크롤 로딩
+  const loadComments = async () => {
+    if (!showComments || !hasMoreComments) return;
+
+    setIsLoadingComments(true);
+    const commentsRef = collection(db, "posts", post.id, "comments");
+    let q = query(commentsRef, orderBy("createdAt", "desc"), limit(20));
+
+    if (lastVisible) {
+      q = query(q, startAfter(lastVisible));
+    }
+
+    const querySnapshot = await getDocs(q);
+    const newComments = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    setComments((prev) => [...prev, ...newComments]);
+    setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
+    setHasMoreComments(newComments.length > 0);
+    setIsLoadingComments(false);
+  };
+
+  // 댓글 작성
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!comment.trim()) return;
+
+    if (!user) {
+      alert("로그인 후 댓글을 작성할 수 있습니다.");
+      return;
+    }
+
+    try {
+      // 유저의 프로필 정보 가져오기
+      const userProfileRef = doc(db, "users", user.uid);
+      const userProfileSnap = await getDoc(userProfileRef);
+
+      if (!userProfileSnap.exists()) {
+        alert("유저 프로필 정보를 찾을 수 없습니다.");
+        return;
+      }
+
+      const userProfile = userProfileSnap.data();
+      const newComment = {
+        userId: user.uid,
+        userNickname: userProfile.nickname || "익명 사용자", // 유저 닉네임
+        profileImage: userProfile.profileImage || "/default-avatar.png", // 유저 프로필 이미지
+        text: comment,
+        createdAt: new Date(),
+      };
+
+      const commentsRef = collection(db, "posts", post.id, "comments");
+      const docRef = await addDoc(commentsRef, newComment); // 새 댓글 추가
+
+      // 새 댓글을 기존 댓글 목록에 추가하여 최신화
+      setComments((prev) => [{ id: docRef.id, ...newComment }, ...prev]);
+
+      setComment(""); // 입력 필드 초기화
+      setLastVisible(null);
+      setHasMoreComments(true);
+      queryClient.invalidateQueries(["posts"]);
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      alert("댓글 작성에 실패했습니다. 다시 시도해주세요.");
+    }
+  };
+
+  // 편집 아이콘 클릭 시 수정/삭제 메뉴 열고 닫기
+  const toggleEditMenu = (commentId) => {
+    setIsEditingMenuOpen(isEditingMenuOpen === commentId ? null : commentId);
+  };
+
+  // 댓글 수정
+  // 수정 버튼 클릭 시 수정 모드로 전환
+  const handleEditButtonClick = (comment) => {
+    setIsEditingComment(comment.id); // 수정 모드로 진입
+    setEditedComment(comment.text); // 기존 댓글 내용을 유지
+    setIsEditingMenuOpen(null); // 수정/삭제 메뉴 닫기
+  };
+
+  // 댓글 수정 완료
+  const handleCommentEdit = async (commentId) => {
+    try {
+      const commentRef = doc(db, "posts", post.id, "comments", commentId);
+      await updateDoc(commentRef, { text: editedComment });
+
+      // 수정된 댓글을 최신화하여 반영
+      setComments((prev) =>
+        prev.map((comment) =>
+          comment.id === commentId
+            ? { ...comment, text: editedComment }
+            : comment
+        )
+      );
+
+      setIsEditingComment(null); // 수정 모드 해제
+      setEditedComment(""); // 입력 필드 초기화
+    } catch (error) {
+      console.error("Error updating comment:", error);
+      alert("댓글 수정에 실패했습니다. 다시 시도해주세요.");
+    }
+  };
+
+  // 댓글 삭제
+  const handleCommentDelete = async (commentId) => {
+    try {
+      const commentRef = doc(db, "posts", post.id, "comments", commentId);
+      await deleteDoc(commentRef);
+
+      setComments((prev) => prev.filter((comment) => comment.id !== commentId));
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      alert("댓글 삭제에 실패했습니다. 다시 시도해주세요.");
+    }
+  };
+
+  // 좋아요 기능 토글
+  const handleLikeToggle = async () => {
+    if (!user) return;
+
+    try {
+      const postRef = doc(db, "posts", post.id);
+      if (liked) {
+        await updateDoc(postRef, {
+          likes: arrayRemove(user.uid),
+        });
+      } else {
+        await updateDoc(postRef, {
+          likes: arrayUnion(user.uid),
+        });
+      }
+
+      onPostUpdate({
+        ...post,
+        likes: liked
+          ? post.likes.filter((uid) => uid !== user.uid)
+          : [...post.likes, user.uid],
+      });
+    } catch (error) {
+      console.error("좋아요 처리 중 오류가 발생했습니다.", error);
+      alert("좋아요 처리에 실패했습니다. 다시 시도해주세요.");
+    }
+  };
+
+  // 기존 게시글 수정 및 삭제 기능
   const handleEdit = async () => {
     if (!isAuthor) return;
 
@@ -125,29 +263,34 @@ const PostCard = ({ post, onPostUpdate, onPostDelete }) => {
         })
       );
 
+      // 삭제된 이미지 처리
       const deletedImages = post.images.filter(
         (img) => !uploadedImages.includes(img)
       );
+
+      // 삭제할 이미지가 존재할 경우 삭제 처리
       await Promise.all(
         deletedImages.map((img) => deleteObject(ref(storage, img)))
       );
 
+      // 게시글 업데이트
       await updateDoc(postRef, {
         text: editedText,
         images: uploadedImages,
       });
 
+      // 업데이트된 게시글을 부모 컴포넌트로 전달
       onPostUpdate({ ...post, text: editedText, images: uploadedImages });
       setShowModal(false);
     } catch (error) {
       console.error("Error updating post:", error);
-      alert("Failed to update the post. Please try again.");
+      alert("게시글 수정에 실패했습니다. 다시 시도해주세요.");
     }
   };
 
   const handleDelete = async () => {
     if (!isAuthor) return;
-    if (window.confirm("Are you sure you want to delete this post?")) {
+    if (window.confirm("게시글을 삭제하시겠습니까?")) {
       try {
         await Promise.all(
           post.images.map((img) => deleteObject(ref(storage, img)))
@@ -161,6 +304,9 @@ const PostCard = ({ post, onPostUpdate, onPostDelete }) => {
       }
     }
   };
+
+  const toggleComments = () => setShowComments(!showComments);
+  const toggleExpandText = () => setIsExpanded(!isExpanded);
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
@@ -218,7 +364,7 @@ const PostCard = ({ post, onPostUpdate, onPostDelete }) => {
         )}
       </div>
 
-      {/* Conditionally render the image section */}
+      {/* 이미지 섹션 */}
       {post.images && post.images.length > 0 && (
         <div className="relative w-full" style={{ paddingBottom: "100%" }}>
           <Image
@@ -233,18 +379,19 @@ const PostCard = ({ post, onPostUpdate, onPostDelete }) => {
       <div className="p-4">
         <div className="flex justify-between mb-4">
           <div className="flex space-x-4">
-            <HeartIcon />
+            <HeartIcon liked={liked} onClick={handleLikeToggle} />
             <CommentIcon onClick={toggleComments} />
-            <SendIcon />
           </div>
         </div>
 
-        <p className="font-semibold text-sm mb-2">{post.likes} likes</p>
+        <p className="font-semibold text-sm mb-2">
+          {Array.isArray(post.likes) ? post.likes.length : 0} likes
+        </p>
 
         <p className="text-sm mb-2">
           <span className="font-semibold mr-2">{post.userNickname}</span>
-          {isExpanded ? post.text : truncatedText}
-          {isTextLong && (
+          {isExpanded ? post.text : post.text.slice(0, 30) + "..."}
+          {post.text.length > 50 && (
             <span
               onClick={toggleExpandText}
               className="text-blue-500 cursor-pointer ml-2"
@@ -254,25 +401,100 @@ const PostCard = ({ post, onPostUpdate, onPostDelete }) => {
           )}
         </p>
 
+        {/* 댓글 섹션 */}
         {showComments && (
-          <div className="mt-4 max-h-40 overflow-y-auto">
-            {post.comments.map((comment, index) => (
-              <div key={index} className="flex items-start mb-2">
-                <Image
-                  src={comment.profileImage || "/default-avatar.png"}
-                  alt={comment.userName}
-                  width={24}
-                  height={24}
-                  className="rounded-full mr-2"
-                />
-                <p className="text-sm">
-                  <span className="font-semibold mr-2">
-                    {comment.userNickname}
-                  </span>
-                  {comment.text}
-                </p>
+          <div className="relative mt-4 max-h-40 overflow-y-auto">
+            {comments.map((comment) => (
+              <div
+                key={comment.id}
+                className="flex items-center justify-between mb-2"
+              >
+                <div className="flex items-start">
+                  <Image
+                    src={comment.profileImage || "/default-avatar.png"}
+                    alt={comment.userNickname || "익명 사용자"}
+                    width={24}
+                    height={24}
+                    className="rounded-full mr-2"
+                  />
+                  <div>
+                    <p className="font-semibold text-sm">
+                      {comment.userNickname || "익명 사용자"}
+                    </p>
+
+                    {/* 수정 모드일 때 텍스트 에디터 표시 */}
+                    {isEditingComment === comment.id ? (
+                      <>
+                        <textarea
+                          value={editedComment}
+                          onChange={(e) => setEditedComment(e.target.value)}
+                          className="w-full p-2 border rounded mb-2"
+                        />
+                        <button
+                          onClick={() => handleCommentEdit(comment.id)}
+                          className="text-blue-500"
+                        >
+                          {editedComment !== comment.text
+                            ? "수정 완료"
+                            : "수정"}
+                        </button>
+                      </>
+                    ) : (
+                      <p className="text-sm">{comment.text}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* 수정/삭제 메뉴 */}
+                {(comment.userId === user.uid || isAuthor) && (
+                  <div className="relative">
+                    <button onClick={() => toggleEditMenu(comment.id)}>
+                      <svg
+                        className="w-6 h-6 text-gray-500 cursor-pointer"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"
+                        />
+                      </svg>
+                    </button>
+
+                    {/* 수정/삭제 버튼 */}
+                    {isEditingMenuOpen === comment.id && (
+                      <div className="absolute right-1 mt-1 w-12 bg-white shadow-lg rounded z-50">
+                        <button
+                          onClick={() => handleEditButtonClick(comment)}
+                          className="text-sm text-gray-500 p-2 block w-full text-right"
+                        >
+                          수정
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm("삭제 하시겠습니까?")) {
+                              handleCommentDelete(comment.id);
+                            }
+                          }}
+                          className="text-sm text-red-500 p-2 block w-full text-right"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
+            {hasMoreComments && !isLoadingComments && (
+              <button onClick={loadComments} className="text-blue-500 text-sm">
+                더보기
+              </button>
+            )}
           </div>
         )}
 
@@ -287,7 +509,7 @@ const PostCard = ({ post, onPostUpdate, onPostDelete }) => {
       >
         <input
           type="text"
-          placeholder="Add a comment..."
+          placeholder="댓글 추가..."
           className="flex-grow text-sm focus:outline-none"
           value={comment}
           onChange={(e) => setComment(e.target.value)}
@@ -297,14 +519,14 @@ const PostCard = ({ post, onPostUpdate, onPostDelete }) => {
           className="text-blue-500 font-semibold text-sm ml-4 focus:outline-none"
           disabled={!comment.trim()}
         >
-          Post
+          게시
         </button>
       </form>
 
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-4">Edit Post</h2>
+            <h2 className="text-xl font-bold mb-4">게시글 수정하기</h2>
             <textarea
               value={editedText}
               onChange={(e) => setEditedText(e.target.value)}
@@ -346,7 +568,7 @@ const PostCard = ({ post, onPostUpdate, onPostDelete }) => {
                 onClick={handleDelete}
                 className="bg-red-500 text-white px-4 py-2 rounded"
               >
-                삭제
+                게시글 삭제
               </button>
               <button
                 onClick={() => setShowModal(false)}
@@ -362,6 +584,7 @@ const PostCard = ({ post, onPostUpdate, onPostDelete }) => {
   );
 };
 
+// 게시글 피드 컴포넌트
 export default function PostFeed() {
   const [posts, setPosts] = useState([]);
 
@@ -374,14 +597,14 @@ export default function PostFeed() {
     queryFn: fetchPosts,
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (fetchedPosts) {
       setPosts(fetchedPosts);
     }
   }, [fetchedPosts]);
 
-  if (isLoading) return <div>Loading posts...</div>;
-  if (error) return <div>Error loading posts</div>;
+  if (isLoading) return <div>로딩 중...</div>;
+  if (error) return <div>게시글을 불러오는 중 오류가 발생했습니다.</div>;
 
   return (
     <div className="max-width-md mx-auto mt-8">
@@ -402,3 +625,5 @@ export default function PostFeed() {
     </div>
   );
 }
+
+// 650줄~~
