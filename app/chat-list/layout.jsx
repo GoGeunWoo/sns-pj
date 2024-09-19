@@ -217,14 +217,7 @@ export default function RootLayout({ children }) {
                   채팅
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="/list"
-                  className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
-                >
-                  리스트
-                </Link>
-              </li>
+
               <li>
                 <Link
                   href={user ? `/main/users/${user.uid}` : "/login"}
@@ -240,12 +233,6 @@ export default function RootLayout({ children }) {
                 className="flex items-center p-2 text-gray-900 transition duration-75 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white group"
               >
                 Logout
-              </button>
-              <button
-                onClick={() => setDarkMode(!darkMode)}
-                className="flex items-center p-2 text-gray-900 transition duration-75 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white group"
-              >
-                {darkMode ? "Light Mode" : "Dark Mode"}
               </button>
             </div>
           </div>
