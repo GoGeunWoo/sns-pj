@@ -625,5 +625,3 @@ export default function PostFeed() {
     </div>
   );
 }
-
-// 650줄~~
