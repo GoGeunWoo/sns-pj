@@ -14,7 +14,7 @@ import {
 import { db } from "@/firebaseConfig";
 import { useParams } from "next/navigation";
 import PostAdd from "@/app/components/PostAdd";
-import PostDetail from "@/app/components/PostDetail"; // 추가된 임포트
+import PostDetail from "@/app/components/PostDetail"; // 게시글 모달 상세보기
 import ProfileEditModal from "@/app/components/ProfileEditModal"; // 프로필 편집 모달 컴포넌트
 
 const UserProfile = () => {
@@ -68,11 +68,11 @@ const UserProfile = () => {
   };
 
   const handlePostClick = (post) => {
-    setSelectedPost(post);
+    setSelectedPost(post); // 게시글 선택 시 모달을 열기 위해 상태를 업데이트
   };
 
   const handleModalClose = () => {
-    setSelectedPost(null);
+    setSelectedPost(null); // 모달 닫기
   };
 
   if (!user) return <p>로딩 중...</p>;
