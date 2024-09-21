@@ -66,7 +66,7 @@ http://localhost:3000/
 - 폼 유효성 검증
 - 로그인 후 전역상태로 회원정보 관리
 
-#### <details><summary>전체 게시글 피드 조회</summary> <br/> <p>전체상품 - 결과 필터링</p> <img src="https://github.com/wjstjdus96/byhand/assets/77755620/e9c5366a-fcf0-4115-b274-e91dd7707802" width="600" /> <br/> <br/> <p>전체상품 - 무한스크롤</p> <img src="https://github.com/wjstjdus96/byhand/assets/77755620/a6697ac9-49fc-4461-96aa-1cb8d1b92e12" width="600" /> <br/></details>
+#### <details><summary>전체 게시글 피드 조회</summary> <br/> <p>전체상품 - 결과 필터링</p> <img src="" width="600" /> <br/> <br/> <p>전체상품 - 무한스크롤</p> <img src="" width="600" /> <br/></details>
 
 - 모든 게시글 최신순으로 조회
 - 무한스크롤을 활용한 페이지네이션(기능 구현 x)
