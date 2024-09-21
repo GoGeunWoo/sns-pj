@@ -17,14 +17,14 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// Firebase services
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
 const appleProvider = new OAuthProvider("apple.com");
 
-// Export 'app' as default, and other services
-export default app; // 'app'을 default로 내보내기
+// Export app as default
+export default app; // app을 default로 내보냄
+
+// Export other services
 export { auth, db, storage, googleProvider, appleProvider };
