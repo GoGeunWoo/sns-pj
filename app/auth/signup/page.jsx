@@ -82,7 +82,7 @@ const Signup = () => {
         createdAt: serverTimestamp(),
       });
 
-      router.push("/main");
+      router.push("/");
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {
         setError("이미 사용 중인 이메일입니다.");

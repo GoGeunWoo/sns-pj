@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   collection,
   query,
@@ -18,6 +18,8 @@ import {
 } from "firebase/firestore";
 import { db } from "@/firebaseConfig";
 import { useAuth } from "@/app/components/AuthContext";
+import { getAuth } from "firebase/auth";
+import { getStorage, ref, deleteObject } from "firebase/storage"; // Firebase Storage 가져오기
 
 // 좋아요 아이콘 컴포넌트
 const HeartIcon = ({ liked, onClick }) => (
@@ -239,7 +241,7 @@ const PostCard = ({ post, onPostUpdate, onPostDelete }) => {
     }
   };
 
-  // 기존 게시글 수정 및 삭제 기능
+  // 기존 게시글 수정 기능
   const handleEdit = async () => {
     if (!isAuthor) return;
 
@@ -288,19 +290,36 @@ const PostCard = ({ post, onPostUpdate, onPostDelete }) => {
     }
   };
 
+  // 기존 게시글 삭제 기능
   const handleDelete = async () => {
-    if (!isAuthor) return;
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+
+    if (!isAuthor || !currentUser) {
+      alert("권한이 없습니다.");
+      return;
+    }
+
     if (window.confirm("게시글을 삭제하시겠습니까?")) {
       try {
+        const storage = getStorage();
+
+        // 이미지 삭제 처리
         await Promise.all(
-          post.images.map((img) => deleteObject(ref(storage, img)))
+          post.images.map((img) => {
+            const imgRef = ref(storage, img);
+            return deleteObject(imgRef);
+          })
         );
+
+        // Firestore에서 게시글 삭제
         await deleteDoc(doc(db, "posts", post.id));
+
         onPostDelete(post.id);
         setShowModal(false);
       } catch (error) {
-        console.error("Error deleting post:", error);
-        alert("Failed to delete the post. Please try again.");
+        console.error("게시글 삭제 중 오류:", error);
+        alert("게시글 삭제에 실패했습니다. 다시 시도해주세요.");
       }
     }
   };

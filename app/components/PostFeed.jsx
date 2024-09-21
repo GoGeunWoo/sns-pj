@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from "react";
-import PostCard from "@/app/components/PostCard";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPosts } from "@/app/utils/firebaseUtils";
+import PostCard from "@/app/components/PostCard"; // PostCard 컴포넌트 임포트
 
-export default function PostFeed() {
+const PostFeed = ({ onPostClick }) => {
+  // onPostClick prop 추가
   const [posts, setPosts] = useState([]);
+
   const {
     data: fetchedPosts,
     error,
     isLoading,
-  } = useQuery({ queryKey: ["posts"], queryFn: fetchPosts });
+  } = useQuery({
+    queryKey: ["posts"],
+    queryFn: fetchPosts,
+  });
 
   useEffect(() => {
     if (fetchedPosts) {
@@ -26,16 +31,11 @@ export default function PostFeed() {
         <PostCard
           key={post.id}
           post={post}
-          onPostUpdate={(updatedPost) =>
-            setPosts((prev) =>
-              prev.map((p) => (p.id === updatedPost.id ? updatedPost : p))
-            )
-          }
-          onPostDelete={(deletedPostId) =>
-            setPosts((prev) => prev.filter((p) => p.id !== deletedPostId))
-          }
+          onClick={() => onPostClick(post)} // 클릭 시 부모로 게시글 전달
         />
       ))}
     </div>
   );
-}
+};
+
+export default PostFeed;

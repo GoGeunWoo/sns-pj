@@ -4,7 +4,7 @@ import Image from "next/image";
 const PostDetail = ({ post, onClose }) => {
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) {
-      onClose();
+      onClose(); // 모달 닫기
     }
   };
 
@@ -21,7 +21,7 @@ const PostDetail = ({ post, onClose }) => {
           &times;
         </button>
 
-        {/* 이미지가 있을 경우에만 표시, 고정 크기 500x500 */}
+        {/* 이미지가 있을 경우에만 표시 */}
         {post.images && post.images.length > 0 && (
           <div className="w-300px h-300px relative">
             <Image

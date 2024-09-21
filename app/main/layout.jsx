@@ -6,15 +6,18 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Dropdown } from "flowbite";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
-import { app, db } from "@/firebaseConfig"; // Firestore를 사용하기 위해 db 추가
-import { doc, getDoc } from "firebase/firestore"; // Firestore 메소드 추가
+import { app, db } from "@/firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+import PostAdd from "@/app/components/PostAdd"; // PostAdd 추가
 
 const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({ children }) {
   const [darkMode, setDarkMode] = useState(false);
   const [user, setUser] = useState(null);
+  const [isPostModalOpen, setIsPostModalOpen] = useState(false); // 게시글 모달 상태 추가
+  const [posts, setPosts] = useState([]); // 게시글 관리 상태 추가
   const router = useRouter();
 
   useEffect(() => {
@@ -29,7 +32,7 @@ export default function RootLayout({ children }) {
           setUser({
             uid: currentUser.uid,
             email: currentUser.email,
-            ...userDocSnap.data(), // Firestore에 저장된 추가 데이터를 상태에 추가
+            ...userDocSnap.data(),
           });
         } else {
           console.log("사용자 데이터가 없습니다.");
@@ -60,6 +63,10 @@ export default function RootLayout({ children }) {
     } catch (error) {
       console.error("로그아웃 중 오류 발생:", error);
     }
+  };
+
+  const handlePostAdd = (newPost) => {
+    setPosts([newPost, ...posts]);
   };
 
   return (
@@ -95,7 +102,6 @@ export default function RootLayout({ children }) {
                   <span className="self-center text-xl font-semibold sm:text-2xl whitespace-nowrap dark:text-white">
                     <Image
                       src="/images/logopng.png"
-                      // layout="w-6 h-6"
                       width="60"
                       height="60"
                       alt="Together Workout"
@@ -144,38 +150,21 @@ export default function RootLayout({ children }) {
                     <ul className="py-1" role="none">
                       <li>
                         <Link
-                          href="/dashboard"
+                          href={user ? `/main/users/${user.uid}` : "/login"}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white"
                           role="menuitem"
                         >
-                          Dashboard
+                          My Page
                         </Link>
                       </li>
-                      <li>
-                        <Link
-                          href="/settings"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white"
-                          role="menuitem"
-                        >
-                          Settings
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          href="/earnings"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white"
-                          role="menuitem"
-                        >
-                          Earnings
-                        </Link>
-                      </li>
+
                       <li>
                         <button
                           onClick={handleLogout}
                           className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white"
                           role="menuitem"
                         >
-                          Log out
+                          Logout
                         </button>
                       </li>
                     </ul>
@@ -229,6 +218,12 @@ export default function RootLayout({ children }) {
             </ul>
             <div className="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200 dark:border-gray-700">
               <button
+                onClick={() => setIsPostModalOpen(true)} // 모달 열기 버튼
+                className="flex items-center p-2 text-gray-900 transition duration-75 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white group"
+              >
+                게시글 작성하기
+              </button>
+              <button
                 onClick={handleLogout}
                 className="flex items-center p-2 text-gray-900 transition duration-75 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white group"
               >
@@ -237,11 +232,20 @@ export default function RootLayout({ children }) {
             </div>
           </div>
         </aside>
+
         <div className="p-4 sm:ml-64">
           <div className="p-4 border-gray-200 border-dashed rounded-lg dark:border-gray-700 mt-14">
             {children}
           </div>
         </div>
+
+        {isPostModalOpen && (
+          <PostAdd
+            onClose={() => setIsPostModalOpen(false)} // 모달 닫기
+            userId={user?.uid} // 사용자 ID 전달
+            onPostAdd={handlePostAdd} // 게시글 추가 로직
+          />
+        )}
       </body>
     </html>
   );
