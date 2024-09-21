@@ -12,7 +12,7 @@
 
 #### 프로젝트 배포링크
 
-[ T.W 배포링크 ](sns-pj-tw.vercel.app)
+[ T.W 배포링크 ](https://sns-pj-tw-gogeunwoos-projects.vercel.app/)
 
 ##### 테스트 계정
 
