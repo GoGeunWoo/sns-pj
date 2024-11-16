@@ -79,18 +79,14 @@ http://localhost:3000/
 #### <details><summary>[구매자] 장바구니</summary><br/> <p>장바구니 - 상품선택,수량변경</p> <img src="https://github.com/wjstjdus96/byhand/assets/77755620/ab88a2c2-2a66-4d6b-89e1-00f239aa64b5" width="600" /> <br/> <br/> <p>장바구니 - 부분삭제,부분결제</p> <img src="https://github.com/wjstjdus96/byhand/assets/77755620/7b7b9161-5ca3-4717-be6d-74492e897a8f" width="600" /></details>
 
 - 장바구니 상품 수량 수정 기능
-- 선택한 상품 금액 및 개수 계산
-- 상품 전체/부분선택 -> 부분적인 주문 및 삭제 기능
 
 #### <details><summary>[구매자] 선택 상품 주문</summary> <br/> <p>주문-배송정보입력</p> <img src="https://github.com/wjstjdus96/byhand/assets/77755620/4f5b4468-0edc-4aae-8dc1-20e5a2d4b015" width="600" /> <br/> <br/> <p>주문-결제</p> <img src="https://github.com/wjstjdus96/byhand/assets/77755620/50c1c1e2-74ce-4a49-aafa-3ded7825be24" width="600" /></details>
 
 - 카카오 우편번호 api를 활용한 배송 정보 입력 기능
-- 포트원 SDK를 활용한 결제 기능
 
 #### <details><summary>[구매자] 주문 내역 조회 및 주문 취소</summary><br/> <p>주문 정보 조회 및 주문 취소</p> <img src="https://github.com/wjstjdus96/byhand/assets/77755620/953a3f66-18f7-4dd8-8aa1-da815ccf1fab" width="600" /></details>
 
 - 날짜별 주문 내역 조회 기능
-- 상품별 주문 취소 기능
 
 #### <details><summary>[판매자] 판매상품관리</summary> <br/> <p>판매상품관리 - 상품 등록,수정</p> <img src="https://github.com/wjstjdus96/byhand/assets/77755620/42e80267-58e8-494c-8e95-9d58e6035ad9" width="600" /> <br/> <br/> <p>판매상품관리 - 상품 삭제</p> <img src="https://github.com/wjstjdus96/byhand/assets/77755620/c2b12fdf-3fd1-43a6-89b0-67059eff7fa3" width="600" /></details>
 
@@ -98,11 +94,6 @@ http://localhost:3000/
 - 등록 시 상품 이미지 개수 5개 제한 -->
 
 <br/>
-
-## 🔥 성능 최적화
-
-- [성능 최적화는 아직 못하였으나 추가적인 기능구현이 완료되면 성능 최적화도 진행 예정]
-  <br/>
 
 ## 🔫 트러블 슈팅
 
@@ -113,8 +104,6 @@ http://localhost:3000/
 ## 💭 기술적 의사결정
 
 - [작성중입니다.]
-
-- [작성중입니다]
 
 <br/>
 
